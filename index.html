@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reaction-Wheel Balancing Frame</title>
+<meta name="description" content="A single-axis reaction-wheel balancing frame: brushless motor control and a four-state LQR controller written from scratch in embedded C on an STM32F411.">
+<meta property="og:title" content="Reaction-Wheel Balancing Frame">
+<meta property="og:description" content="Brushless motor control and a four-state LQR balance controller, written from scratch in embedded C on an STM32F411.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='12.5' fill='none' stroke='%23e0542c' stroke-width='4'/%3E%3Ccircle cx='16' cy='16' r='3.5' fill='%23e0542c'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Arrowheads and hatching for the block diagram. -->
+<svg class="defs" aria-hidden="true" focusable="false">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" class="ah"/></marker>
+    <marker id="ahp" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" class="ahp"/></marker>
+    <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" class="hatch-bg"/><line x1="0" y1="0" x2="0" y2="7" class="hatch-ln"/></pattern>
+  </defs>
+</svg>
+
+<main>
+
+<!-- ================================================================== HERO -->
+<section class="hero">
+  <div class="wrap wide hero-grid">
+    <figure class="hero-media">
+      <div class="media r16x9 screen">
+        <video src="media/hero.mp4" poster="media/hero-poster.jpg" autoplay muted loop playsinline preload="auto" onerror="this.remove()" aria-label="The frame balancing on its edge and recovering from taps"></video>
+        <div class="ph">
+          <svg class="ph-play" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="22"/><path d="M19.5 15.5 L33 24 L19.5 32.5 Z"/></svg>
+          <span class="ph-kind">Hero video · 16:9</span>
+          <code>media/hero.mp4</code>
+          <span class="ph-note">Countdown, release, then side taps and recovery. Fixed camera, one uncut take, muted loop.</span>
+        </div>
+      </div>
+      <figcaption>The frame balancing on its edge and recovering from side taps.</figcaption>
+    </figure>
+
+    <div class="hero-text">
+      <p class="eyebrow">Personal project · 2026</p>
+      <h1>Reaction-Wheel Balancing Frame</h1>
+      <p class="hero-lede">A frame that balances on one edge by spinning a wheel. I wrote the brushless motor control and the balance controller from scratch in embedded C on an STM32F411, with no motor library.</p>
+      <dl class="hero-stats">
+        <div><dt>11 min</dt><dd>longest logged balance, through dozens of taps and pushes</dd></div>
+        <div><dt>16°</dt><dd>largest lean it has recovered from; every logged disturbance up to 15° recovered</dd></div>
+        <div><dt>10 kHz</dt><dd>encoder reads and motor commutation</dd></div>
+      </dl>
+      <ul class="tags">
+        <li>Embedded C</li><li>STM32 HAL</li><li>FOC</li><li>LQR</li><li>Python</li><li>Bench prototype</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 01 OVERVIEW -->
+<section class="sec">
+  <div class="wrap">
+    <header class="sec-head">
+      <p class="sec-num"><b>01</b> How it works</p>
+      <h2>Spin the wheel one way, the frame leans the other</h2>
+      <p class="lede">Speeding the wheel up pushes the frame in the opposite direction. Standing on an edge is unstable, so the firmware corrects a thousand times a second. It's a desk-scale version of how satellites point themselves with reaction wheels.</p>
+    </header>
+    <ol class="steps">
+      <li>
+        <span class="step-k">Sense</span>
+        <h3>Measure</h3>
+        <p>An encoder reads the wheel's angle 10,000 times a second over SPI. An IMU reads the frame's gravity vector and rotation 1,000 times a second over I²C.</p>
+      </li>
+      <li>
+        <span class="step-k">Decide</span>
+        <h3>Compute</h3>
+        <p>A four-state LQR controller turns tilt, tilt rate, wheel speed and wheel turn into a single number: the motor voltage.</p>
+      </li>
+      <li>
+        <span class="step-k">Act</span>
+        <h3>Drive</h3>
+        <p>Field-oriented commutation turns that voltage into three sine-wave PWM signals for the motor driver, so the wheel gets smooth torque in either direction.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============================================================ 02 HARDWARE -->
+<section class="sec alt">
+  <div class="wrap">
+    <header class="sec-head">
+      <p class="sec-num"><b>02</b> Hardware</p>
+      <h2>Bill of materials</h2>
+      <p class="lede">Off-the-shelf modules wired on a breadboard. An adjustable bench PSU powers the motor; a USB-C port on the breadboard powers everything else.</p>
+    </header>
+    <div class="split">
+      <figure class="fig">
+        <div class="media r4x3">
+          <img src="media/rig.jpg" alt="The 3D-printed frame with its reaction wheel, sensors and breadboard electronics" loading="lazy" onerror="this.remove()">
+          <div class="ph"><span class="ph-kind">Photo · 4:3</span><code>media/rig.jpg</code><span class="ph-note">Three-quarter view with small labels: wheel, encoder, IMU, MCU, driver, display, HC-05.</span></div>
+        </div>
+        <figcaption>The complete assembly: 3D-printed frame, reaction wheel and breadboard electronics.</figcaption>
+      </figure>
+      <div class="table-wrap">
+        <table class="bom">
+          <thead><tr><th>Part</th><th>Role</th><th>Interface</th></tr></thead>
+          <tbody>
+            <tr><td><b>STM32F411CE</b><br> <small>"Black Pill"</small></td><td>Cortex-M4F at 100 MHz; runs everything</td><td>SWD</td></tr>
+            <tr><td><b>SimpleFOC Mini v1.1</b></td><td>DRV8313 three-phase power stage (the board only, none of the SimpleFOC software)</td><td>3× PWM, enable, fault, reset</td></tr>
+            <tr><td><b>GBM2804H-100T</b></td><td>Brushless gimbal motor, 7 pole pairs, spins the wheel</td><td>3 phases, 12 V</td></tr>
+            <tr><td><b>Reaction wheel</b></td><td>120 mm diameter, 22.1 g</td><td>on the motor</td></tr>
+            <tr><td><b>AS5047P</b></td><td>14-bit magnetic encoder on the wheel axis</td><td>SPI, 6.25 MHz</td></tr>
+            <tr><td><b>MPU6500</b></td><td>Accelerometer and gyro for frame tilt and rotation rate</td><td>I²C, 400 kHz</td></tr>
+            <tr><td><b>SH1106 OLED</b></td><td>128×64 display: tilt, countdown, wheel speed</td><td>I²C, own bus</td></tr>
+            <tr><td><b>HC-05</b></td><td>Bluetooth serial for live telemetry and tuning</td><td>UART, 115200 baud</td></tr>
+            <tr><td><b>Frame</b></td><td>Fully 3D-printed; 112 g moving mass, centre of mass 75 mm above the pivot</td><td class="na">–</td></tr>
+            <tr><td><b>Bench kit</b></td><td>Adjustable bench PSU (12 V for the motor), breadboard, ST-LINK V2 programmer, and a USB-C port that powers everything except the motor</td><td class="na">–</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== 03 ARCHITECTURE -->
+<section class="sec">
+  <div class="wrap">
+    <header class="sec-head">
+      <h2 class="sec-num"><b>03</b> Architecture</h2>
+    </header>
+
+    <figure class="diagram">
+      <div class="scroll-x">
+        <svg class="dg" viewBox="0 0 1000 510" role="img" aria-labelledby="arch-t arch-d">
+          <title id="arch-t">System block diagram</title>
+          <desc id="arch-d">The STM32F411 sits in the middle. On the left it reads the MPU6500 IMU over I2C2, drives the SH1106 OLED over I2C1 and talks to the HC-05 Bluetooth module over UART. A USB-C port on the breadboard powers the logic side. On the right it sends three PWM signals and an enable line to the SimpleFOC Mini driver, reads its fault line and drives its reset line. The driver is powered at 12 V from an adjustable bench PSU and drives the GBM2804 motor and wheel. The AS5047P encoder reads a magnet on the wheel axis and reports over SPI. An ST-LINK connects over SWD.</desc>
+
+          <line x1="30" y1="36" x2="60" y2="36" class="ln"/><text x="68" y="40" class="lbl">signal</text>
+          <line x1="140" y1="36" x2="170" y2="36" class="ln pwr"/><text x="178" y="40" class="lbl">power</text>
+          <line x1="245" y1="36" x2="275" y2="36" class="ln mech"/><text x="283" y="40" class="lbl">mechanical</text>
+
+          <!-- left: sensing, user interface and logic power -->
+          <rect x="30" y="110" width="230" height="70" rx="8" class="box ctl"/>
+          <text x="46" y="140" class="t">MPU6500 IMU</text>
+          <text x="46" y="162" class="s">tilt + rotation · 1 kHz</text>
+
+          <rect x="30" y="215" width="230" height="70" rx="8" class="box"/>
+          <text x="46" y="245" class="t">SH1106 OLED</text>
+          <text x="46" y="267" class="s">tilt · countdown · RPM</text>
+
+          <rect x="30" y="320" width="230" height="70" rx="8" class="box"/>
+          <text x="46" y="350" class="t">HC-05 Bluetooth</text>
+          <text x="46" y="372" class="s">telemetry + commands</text>
+
+          <rect x="30" y="425" width="230" height="70" rx="8" class="box pwr"/>
+          <text x="46" y="455" class="t">USB-C port</text>
+          <text x="46" y="477" class="s">powers all logic modules</text>
+
+          <!-- centre: MCU -->
+          <rect x="380" y="80" width="240" height="340" rx="12" class="box mcu"/>
+          <text x="398" y="112" class="t mcu-t">STM32F411 Black Pill</text>
+          <text x="398" y="132" class="s mcu-s">Cortex-M4F · 100 MHz</text>
+          <rect x="396" y="150" width="208" height="44" rx="6" class="row"/>
+          <text x="410" y="169" class="rt">TIM2 · PWM</text><text x="410" y="185" class="rs">20 kHz, centre-aligned</text>
+          <rect x="396" y="200" width="208" height="44" rx="6" class="row"/>
+          <text x="410" y="219" class="rt">TIM5 ISR · motor</text><text x="410" y="235" class="rs">10 kHz encoder + FOC</text>
+          <rect x="396" y="250" width="208" height="44" rx="6" class="row"/>
+          <text x="410" y="269" class="rt">TIM3 ISR · control</text><text x="410" y="285" class="rs">1 kHz IMU + LQR</text>
+          <rect x="396" y="300" width="208" height="44" rx="6" class="row"/>
+          <text x="410" y="319" class="rt">Main loop</text><text x="410" y="335" class="rs">display · telemetry · CLI</text>
+          <rect x="396" y="350" width="208" height="44" rx="6" class="row"/>
+          <text x="410" y="369" class="rt">Safety guard</text><text x="410" y="385" class="rs">SysTick checks + watchdog</text>
+
+          <!-- right: motor power path -->
+          <rect x="740" y="20" width="230" height="52" rx="8" class="box pwr"/>
+          <text x="756" y="51" class="t">Adjustable bench PSU</text>
+          <rect x="740" y="110" width="230" height="80" rx="8" class="box pwr"/>
+          <text x="756" y="142" class="t">SimpleFOC Mini v1.1</text>
+          <text x="756" y="164" class="s">DRV8313 3-phase bridge</text>
+          <rect x="740" y="235" width="230" height="70" rx="8" class="box phys"/>
+          <text x="756" y="265" class="t">GBM2804H-100T</text>
+          <text x="756" y="287" class="s">gimbal motor + 120 mm wheel</text>
+          <rect x="740" y="355" width="230" height="70" rx="8" class="box ctl"/>
+          <text x="756" y="385" class="t">AS5047P encoder</text>
+          <text x="756" y="407" class="s">14-bit · wheel angle</text>
+
+          <rect x="420" y="455" width="160" height="40" rx="8" class="box"/>
+          <text x="500" y="480" class="t" text-anchor="middle">ST-LINK V2</text>
+
+          <!-- connections -->
+          <path d="M261 145 H379" class="ln" marker-end="url(#ah)"/>
+          <text x="320" y="136" class="lbl" text-anchor="middle">I²C2 · 400 kHz</text>
+          <path d="M380 250 H262" class="ln" marker-end="url(#ah)"/>
+          <text x="320" y="241" class="lbl" text-anchor="middle">I²C1 · 400 kHz</text>
+          <path d="M262 355 H378" class="ln" marker-start="url(#ah)" marker-end="url(#ah)"/>
+          <text x="320" y="346" class="lbl" text-anchor="middle">UART · 115200</text>
+          <path d="M261 460 H400 V422" class="ln pwr" marker-end="url(#ahp)"/>
+          <text x="320" y="451" class="lbl" text-anchor="middle">logic power</text>
+          <path d="M621 140 H739" class="ln" marker-end="url(#ah)"/>
+          <text x="680" y="131" class="lbl" text-anchor="middle">3× PWM · EN</text>
+          <path d="M622 172 H738" class="ln" marker-start="url(#ah)" marker-end="url(#ah)"/>
+          <text x="680" y="191" class="lbl" text-anchor="middle">nFT · nRT</text>
+          <path d="M855 73 V109" class="ln pwr" marker-end="url(#ahp)"/>
+          <text x="866" y="96" class="lbl">12 V</text>
+          <path d="M855 191 V234" class="ln pwr" marker-end="url(#ahp)"/>
+          <text x="866" y="217" class="lbl">3 phases</text>
+          <path d="M855 306 V354" class="ln mech"/>
+          <text x="866" y="335" class="lbl">magnet</text>
+          <path d="M740 390 H622" class="ln" marker-end="url(#ah)"/>
+          <text x="680" y="381" class="lbl" text-anchor="middle">SPI · 6.25 MHz</text>
+          <path d="M500 422 V453" class="ln" marker-start="url(#ah)" marker-end="url(#ah)"/>
+          <text x="510" y="442" class="lbl">SWD</text>
+        </svg>
+      </div>
+      <p class="scroll-hint">Scroll sideways to see the whole diagram →</p>
+      <figcaption>System block diagram. The adjustable PSU powers only the motor side; the USB-C port on the breadboard powers the STM32 and every module.</figcaption>
+    </figure>
+
+    <div class="split lr gap-top">
+      <div>
+        <h3>Timing budget</h3>
+        <ul class="clocks">
+          <li><span class="hz">20 kHz</span><div><b>TIM2 · PWM carrier</b><small>Timer hardware only, no CPU time</small></div></li>
+          <li><span class="hz">10 kHz</span><div><b>TIM5 · encoder + commutation</b><span class="bar"><i style="--w:56%"></i></span><small>worst observed: under 60 µs of 100 µs</small></div></li>
+          <li><span class="hz">1 kHz</span><div><b>TIM3 · IMU, tilt filter, LQR, recorder</b><span class="bar"><i style="--w:56%"></i></span><small>worst observed: under 560 µs of 1 ms</small></div></li>
+          <li><span class="hz">main</span><div><b>Main loop · display, telemetry, commands</b><small>runs in whatever time is left</small></div></li>
+        </ul>
+        <p class="small-note">Interrupt priorities, highest first: a 1 kHz SysTick safety guard, the motor interrupt, UART receive, then the control loop.</p>
+      </div>
+      <figure class="snippet">
+        <div class="code">
+          <div class="code-bar"><span class="file">Src/main.c</span><span>TIM5_IRQHandler · condensed</span></div>
+<pre><code class="language-c">void TIM5_IRQHandler(void)
+{
+    TIM5-&gt;SR = ~TIM_SR_UIF;
+    uint32_t start = DWT-&gt;CYCCNT;
+
+    bool valid = Sensors_EncoderUpdate();
+    Motor_Tick(Sensors_WheelAbsolute(), valid);
+
+    uint32_t cycles = DWT-&gt;CYCCNT - start;
+    if (cycles &gt;= SystemCoreClock / ENC_HZ || (TIM5-&gt;SR &amp; TIM_SR_UIF))
+        Motor_Kill(MOTOR_LATE);
+}</code></pre>
+        </div>
+        <figcaption>Every interrupt times itself with the CPU's cycle counter and switches the motor off if it ever runs late.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================== 04 WIRING -->
+<section class="sec alt">
+  <div class="wrap">
+    <header class="sec-head">
+      <p class="sec-num"><b>04</b> Wiring</p>
+      <h2>Breadboard layout and pin map</h2>
+      <p class="lede">This is a breadboard bench prototype. The PSU's 12 V and the three motor phases go straight to the driver board; everything else runs from the USB-C port, with 3.3 V logic and one shared ground.</p>
+    </header>
+    <div class="split">
+      <figure class="fig">
+        <div class="media r4x3">
+          <img src="media/breadboard.jpg" alt="The breadboard with the STM32 Black Pill and the other modules" loading="lazy" onerror="this.remove()">
+          <div class="ph"><span class="ph-kind">Photo · 4:3</span><code>media/breadboard.jpg</code><span class="ph-note">Top-down shot of the breadboard, wires visible.</span></div>
+        </div>
+        <figcaption>The breadboard: every module except the motor runs from its USB-C port.</figcaption>
+      </figure>
+      <div class="choices">
+        <h3>Design choices</h3>
+        <div class="choice"><b>Two I²C buses</b><p>The IMU and the display each get their own bus. Redrawing one line of text takes about 6 ms of bus time, which would block the 1 kHz IMU read on a shared bus.</p></div>
+        <div class="choice"><b>EN is the kill switch</b><p>Pulling EN low turns every driver output off and lets the wheel coast. The DRV8313 pulls EN low internally and the firmware drives it low first thing at startup, so nothing moves before the firmware says so.</p></div>
+        <div class="choice"><b>Fault lines wired, not ignored</b><p>The DRV8313 latches off on over-current until its reset pin is pulsed or its power is cycled. The firmware watches the fault pin and can clear it without cutting power.</p></div>
+        <div class="choice"><b>One timer for all three phases</b><p>IN1–IN3 come from TIM2 channels 1–3, so the three phases share one counter and one update event.</p></div>
+      </div>
+    </div>
+
+    <div class="table-wrap gap-top">
+      <table class="pins">
+        <thead><tr><th>STM32 pin</th><th>Connects to</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>PA15 · PA1 · PA2</td><td>Driver IN1 · IN2 · IN3</td><td>TIM2 CH1–3, 20 kHz centre-aligned PWM</td></tr>
+          <tr><td>PB8</td><td>Driver EN</td><td>Low = outputs off, wheel coasts</td></tr>
+          <tr><td>PB12 · PB13</td><td>Driver nFT · nRT</td><td>Fault input · fault reset</td></tr>
+          <tr><td>PA4 – PA7</td><td>AS5047P CS · SCK · MISO · MOSI</td><td>SPI1, 6.25 MHz, mode 1</td></tr>
+          <tr><td>PB10 · PB9</td><td>MPU6500 SCL · SDA</td><td>I²C2, 400 kHz</td></tr>
+          <tr><td>PB6 · PB7</td><td>SH1106 SCL · SDA</td><td>I²C1, 400 kHz</td></tr>
+          <tr><td>PA9 · PA10</td><td>HC-05 RX · TX</td><td>USART1, 115200 baud</td></tr>
+          <tr><td>PA13 · PA14</td><td>ST-LINK SWDIO · SWCLK</td><td>Flashing and live debugging</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== 05 MOTOR -->
+<section class="sec">
+  <div class="wrap">
+    <header class="sec-head">
+      <p class="sec-num"><b>05</b> Motor control</p>
+      <h2>Field-oriented control, written from scratch</h2>
+      <p class="lede">A brushless motor makes the most torque when its magnetic field leads the rotor by 90 electrical degrees. There's no motor library here: every 100 µs the firmware reads the rotor angle, works out where the field should point and writes three PWM duties straight to the timer registers.</p>
+    </header>
+
+    <div class="split lr">
+      <div class="prose">
+        <p>The encoder angle times the 7 pole pairs gives the electrical angle, minus an offset measured once by an alignment sweep. An inverse Park transform rotates the requested voltage onto that angle. An inverse Clarke transform then splits it into three phase voltages 120° apart, which become centred sine-wave duties on a 20 kHz carrier.</p>
+        <div class="choices">
+          <div class="choice"><b>Voltage mode</b><p>The driver board has no current sensors, so the firmware commands voltage, capped at 6 V (the full sine range on a 12 V supply). Back-EMF limits the wheel to about 1,400 RPM at 6 V.</p></div>
+          <div class="choice"><b>Align once, store it</b><p>A slow 9-second field sweep measured the motor's direction and electrical offset. The encoder is absolute, so the result survives power cycles and startup never has to move the wheel.</p></div>
+          <div class="choice"><b>Glitch-free duty updates</b><p>Timer updates are held off while the three duties are written, so all three change on the same PWM cycle.</p></div>
+        </div>
+      </div>
+      <div class="stack">
+        <figure class="snippet">
+          <div class="code">
+            <div class="code-bar"><span class="file">Src/motor.c</span><span>drive() · condensed</span></div>
+<pre><code class="language-c">// Rotor angle -&gt; electrical angle: 7 pole pairs, offset from alignment
+float theta = wrap(direction * MOTOR_POLE_PAIRS * angle - zero_electric);
+
+// Inverse Park: rotate the (Ud, Uq) voltage vector onto the rotor
+float s = sinf(theta), c = cosf(theta);
+float a = ud*c - uq*s, b = ud*s + uq*c;
+
+// Inverse Clarke: three phase voltages, 120° apart
+float u = a, v = -0.5f*a + 0.866025404f*b, w = -0.5f*a - 0.866025404f*b;
+
+// Centred sine PWM around 50% duty on the 12 V bus
+Board_MotorPwm(0.5f + u/MOTOR_BUS_V, 0.5f + v/MOTOR_BUS_V,
+               0.5f + w/MOTOR_BUS_V);</code></pre>
+          </div>
+        </figure>
+        <figure class="snippet">
+          <div class="code">
+            <div class="code-bar"><span class="file">Src/board.c</span><span>Board_MotorPwm()</span></div>
+<pre><code class="language-c">// Preloads alone don't guarantee all three duties hit the same cycle
+TIM2-&gt;CR1 |= TIM_CR1_UDIS;    // hold update events
+TIM2-&gt;CCR1 = ca; TIM2-&gt;CCR2 = cb; TIM2-&gt;CCR3 = cc;
+__DMB();
+TIM2-&gt;CR1 &amp;= ~TIM_CR1_UDIS;   // all three latch together</code></pre>
+          </div>
+        </figure>
+      </div>
+    </div>
+
+    <div class="stats gap-top">
+      <div class="stat"><b>1,070 rad/s²</b><span>Wheel acceleration from rest with a 6 V step, both directions.</span></div>
+      <div class="stat"><b>140 ms</b><span>Speed time constant under a constant 6 V.</span></div>
+      <div class="stat"><b>~1,400 RPM</b><span>Top wheel speed at 6 V. Acceleration per volt matched at 2 V and 6 V, so torque scales linearly to the limit.</span></div>
+    </div>
+    <p class="small-note">From 1 kHz on-board recordings of ±6 V steps from rest, with the frame in a bench mount and the speed read from the encoder.</p>
+  </div>
+</section>
+
+<!-- ============================================================= 06 GALLERY -->
+<section class="sec alt">
+  <div class="wrap">
+    <header class="sec-head">
+      <h2 class="sec-num"><b>06</b> Gallery</h2>
+    </header>
+    <div class="gallery">
+      <figure class="media r4x3">
+        <img src="media/gallery-1.jpg" alt="Build photo 1" loading="lazy" onerror="this.remove()">
+        <div class="ph"><span class="ph-kind">Photo · 4:3</span><code>media/gallery-1.jpg</code></div>
+      </figure>
+      <figure class="media r4x3">
+        <img src="media/gallery-2.jpg" alt="Build photo 2" loading="lazy" onerror="this.remove()">
+        <div class="ph"><span class="ph-kind">Photo · 4:3</span><code>media/gallery-2.jpg</code></div>
+      </figure>
+      <figure class="media r4x3">
+        <img src="media/gallery-3.jpg" alt="Build photo 3" loading="lazy" onerror="this.remove()">
+        <div class="ph"><span class="ph-kind">Photo · 4:3</span><code>media/gallery-3.jpg</code></div>
+      </figure>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot"></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+  if (window.hljs) hljs.highlightAll();
+  // Respect reduced-motion settings: no autoplaying video, give controls instead.
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.querySelectorAll('video[autoplay]').forEach(function (v) {
+      v.removeAttribute('autoplay'); v.pause(); v.controls = true;
+    });
+  }
+</script>
+</body>
+</html>
