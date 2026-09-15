@@ -82,12 +82,13 @@ h1, h2, h3 { font-weight: 600; letter-spacing: -0.015em; text-wrap: balance; }
 }
 .hero-grid {
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(280px, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 400px);
   gap: 40px;
   align-items: center;
 }
 .hero-grid > * { min-width: 0; }
-.hero-media .media { max-height: calc(100svh - 120px); }
+/* The video is square, so capping its width keeps it inside a short window. */
+.hero-media { width: min(100%, calc(100svh - 160px)); }
 .hero-media figcaption { margin-top: 10px; font-size: 13.5px; color: var(--ink-3); }
 
 .eyebrow {
@@ -120,22 +121,22 @@ h1, h2, h3 { font-weight: 600; letter-spacing: -0.015em; text-wrap: balance; }
 
 @media (max-width: 1000px) {
   .hero-grid { grid-template-columns: 1fr; gap: 32px; }
-  .hero-media .media { max-height: none; }
+  .hero-media { width: min(100%, 560px); }
   .hero-text { max-width: 640px; }
   .hero h1 { font-size: clamp(32px, 6vw, 44px); }
 }
 
 /* ------------------------------------------------ media and placeholders */
 
+/* Every photo and the hero video are square; anything else is cropped to fit. */
 .media {
   position: relative;
+  aspect-ratio: 1 / 1;
   overflow: hidden;
   border-radius: var(--radius);
   border: 1px solid var(--line);
   background: var(--surface);
 }
-.media.r16x9 { aspect-ratio: 16 / 9; }
-.media.r4x3 { aspect-ratio: 4 / 3; }
 .media > img, .media > video {
   position: absolute; inset: 0; z-index: 1;
   width: 100%; height: 100%;
