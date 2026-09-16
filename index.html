@@ -43,12 +43,11 @@
     </figure>
 
     <div class="hero-text">
-      <p class="eyebrow">Personal project · 2026</p>
       <h1>Reaction-Wheel Balancing Frame</h1>
       <p class="hero-lede">A frame that balances on one edge by spinning a wheel. I wrote the brushless motor control and the balance controller from scratch in embedded C on an STM32F411, with no motor library.</p>
       <dl class="hero-stats">
         <div><dt>11 min</dt><dd>longest logged balance, through dozens of taps and pushes</dd></div>
-        <div><dt>16°</dt><dd>largest lean it has recovered from; every logged disturbance up to 15° recovered</dd></div>
+        <div><dt>16°</dt><dd>largest lean it has recovered from</dd></div>
         <div><dt>10 kHz</dt><dd>encoder reads and motor commutation</dd></div>
       </dl>
       <ul class="tags">
@@ -92,7 +91,7 @@
     <header class="sec-head">
       <p class="sec-num"><b>02</b> Hardware</p>
       <h2>Bill of materials</h2>
-      <p class="lede">Off-the-shelf modules wired on a breadboard. An adjustable bench PSU powers the motor; a USB-C port on the breadboard powers everything else.</p>
+      <p class="lede">Off-the-shelf modules wired on a breadboard. An adjustable bench PSU powers the motor while a USB-C port on the breadboard powers everything else.</p>
     </header>
     <div class="split">
       <figure class="fig">
@@ -100,7 +99,7 @@
           <img src="media/rig.jpeg" alt="The 3D-printed frame with its reaction wheel, sensors and breadboard electronics" loading="lazy" onerror="this.remove()">
           <div class="ph"><span class="ph-kind">Photo · square</span><code>media/rig.jpeg</code><span class="ph-note">Three-quarter view with small labels: wheel, encoder, IMU, MCU, driver, display, HC-05.</span></div>
         </div>
-        <figcaption>The complete assembly: 3D-printed frame, reaction wheel and breadboard electronics.</figcaption>
+        <figcaption>The complete assembly. The display's top row refreshes so often that the camera caught it mid-update, which is why it looks cut off.</figcaption>
       </figure>
       <div class="table-wrap">
         <table class="bom">
@@ -114,7 +113,7 @@
             <tr><td><b>MPU6500</b></td><td>Accelerometer and gyro for frame tilt and rotation rate</td><td>I²C, 400 kHz</td></tr>
             <tr><td><b>SH1106 OLED</b></td><td>128×64 display: tilt, countdown, wheel speed</td><td>I²C, own bus</td></tr>
             <tr><td><b>HC-05</b></td><td>Bluetooth serial for live telemetry and tuning</td><td>UART, 115200 baud</td></tr>
-            <tr><td><b>Frame</b></td><td>Fully 3D-printed; 112 g moving mass, centre of mass 75 mm above the pivot</td><td class="na">–</td></tr>
+            <tr><td><b>Frame</b></td><td>Fully 3D-printed; centre of mass 75 mm above the pivot</td><td class="na">–</td></tr>
             <tr><td><b>Bench kit</b></td><td>Adjustable bench PSU (12 V for the motor), breadboard, ST-LINK V2 programmer, and a USB-C port that powers everything except the motor</td><td class="na">–</td></tr>
           </tbody>
         </table>
