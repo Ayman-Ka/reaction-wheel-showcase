@@ -47,8 +47,8 @@
       <h1>Reaction-Wheel Balancing Frame</h1>
       <p class="hero-lede">A frame that balances on one edge by spinning a wheel. I wrote the brushless motor control and the balance controller from scratch in embedded C on an STM32F411, with no motor library.</p>
       <dl class="hero-stats">
-        <div><dt>11 min</dt><dd>longest logged balance, through dozens of taps and pushes</dd></div>
-        <div><dt>16°</dt><dd>largest lean it has recovered from</dd></div>
+        <div><dt>11 min</dt><dd>balanced unassisted through 56 recorded pushes, settling at its true balance point</dd></div>
+        <div><dt>16°</dt><dd>recovers from disturbances up to this much tilt</dd></div>
         <div><dt>10 kHz</dt><dd>encoder reads and motor commutation</dd></div>
       </dl>
       <ul class="tags">
@@ -307,7 +307,7 @@
         <p>The encoder angle times the 7 pole pairs gives the electrical angle, minus an offset measured once by an alignment sweep. An inverse Park transform rotates the requested voltage onto that angle. An inverse Clarke transform then splits it into three phase voltages 120° apart, which become centred sine-wave duties on a 20 kHz carrier.</p>
         <div class="choices">
           <div class="choice"><b>Voltage mode</b><p>The driver board has no current sensors, so the firmware commands voltage, capped at 6 V (the full sine range on a 12 V supply). Back-EMF limits the wheel to about 1,400 RPM at 6 V.</p></div>
-          <div class="choice"><b>Align once, store it</b><p>A slow 9-second field sweep measured the motor's direction and electrical offset. The encoder is absolute, so the result survives power cycles and startup never has to move the wheel.</p></div>
+          <div class="choice"><b>Align once, store it</b><p>An automatic 9-second routine, run once at setup, locks the stator field at electrical zero and sweeps it one electrical revolution forward and back. The rotor follows, turning the wheel about 51° and back, and its settled encoder reading gives the motor's direction and electrical offset, which is saved in the firmware. The encoder is absolute and its magnet is fixed to the rotor, so the offset holds through power cycles and startup never has to move the wheel. Moving the magnet or swapping phase wires means running setup again.</p></div>
           <div class="choice"><b>Glitch-free duty updates</b><p>Timer updates are held off while the three duties are written, so all three change on the same PWM cycle.</p></div>
         </div>
       </div>
