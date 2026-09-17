@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reaction-Wheel Balancing Frame</title>
-<meta name="description" content="A single-axis reaction-wheel balancing frame: brushless motor control and a four-state LQR controller written from scratch in embedded C on an STM32F411.">
+<meta name="description" content="A single-axis reaction-wheel balancing frame with brushless motor control and a four-state LQR controller I wrote from scratch in embedded C on an STM32F411.">
 <meta property="og:title" content="Reaction-Wheel Balancing Frame">
-<meta property="og:description" content="Brushless motor control and a four-state LQR balance controller, written from scratch in embedded C on an STM32F411.">
+<meta property="og:description" content="I wrote the brushless motor control and a four-state LQR balance controller from scratch in embedded C on an STM32F411.">
 <meta name="theme-color" content="#070a0e">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23070a0e'/%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%23c8f751' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23c8f751'/%3E%3Cpath d='M16 2v6M16 24v6M2 16h6M24 16h6' stroke='%23c8f751' stroke-width='3'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -40,12 +40,12 @@
           <span class="ph-note">Countdown, release, then side taps and recovery. Fixed camera, one uncut take, muted loop.</span>
         </div>
       </div>
-      <figcaption>The frame balancing on its edge and recovering from side taps.</figcaption>
+      <figcaption>The frame balancing on its edge and recovering after I tap it from the side.</figcaption>
     </figure>
 
     <div class="hero-text">
       <h1>Reaction-Wheel Balancing Frame</h1>
-      <p class="hero-lede">A frame that balances on one edge by spinning a wheel. I wrote the brushless motor control and the balance controller from scratch in embedded C on an STM32F411, with no motor library.</p>
+      <p class="hero-lede">I built a frame that balances on one edge by spinning a wheel. I wrote the brushless motor control and the balance controller from scratch in embedded C on an STM32F411, without using a motor library.</p>
       <dl class="hero-stats">
         <div><dt>11 min</dt><dd>balanced unassisted through 56 recorded pushes, settling at its true balance point</dd></div>
         <div><dt>16°</dt><dd>recovers from disturbances up to this much tilt</dd></div>
@@ -63,24 +63,24 @@
   <div class="wrap">
     <header class="sec-head">
       <p class="sec-num"><b>01</b> How it works</p>
-      <h2>Spin the wheel one way, the frame leans the other</h2>
-      <p class="lede">Speeding the wheel up pushes the frame in the opposite direction. Standing on an edge is unstable, so the firmware corrects a thousand times a second. It's a desk-scale version of how satellites point themselves with reaction wheels.</p>
+      <h2>How the reaction wheel balances the frame</h2>
+      <p class="lede">When the wheel speeds up, it pushes the frame the opposite way. A frame standing on its edge falls over by itself, so the firmware corrects it 1,000 times a second. Satellites use reaction wheels the same way to point themselves, and this is a desk-sized version of that.</p>
     </header>
     <ol class="steps">
       <li>
         <span class="step-k">Sense</span>
         <h3>Measure</h3>
-        <p>An encoder reads the wheel's angle 10,000 times a second over SPI. An IMU reads the frame's gravity vector and rotation 1,000 times a second over I²C.</p>
+        <p>An encoder reads the wheel's angle over SPI 10,000 times a second, and an IMU reads the frame's gravity vector and rotation over I²C 1,000 times a second.</p>
       </li>
       <li>
         <span class="step-k">Decide</span>
         <h3>Compute</h3>
-        <p>A four-state LQR controller turns tilt, tilt rate, wheel speed and wheel turn into a single number: the motor voltage.</p>
+        <p>A four-state LQR controller takes the tilt, tilt rate, wheel speed and how far the wheel has turned, and calculates one motor voltage from them.</p>
       </li>
       <li>
         <span class="step-k">Act</span>
         <h3>Drive</h3>
-        <p>Field-oriented commutation turns that voltage into three sine-wave PWM signals for the motor driver, so the wheel gets smooth torque in either direction.</p>
+        <p>The FOC driver converts that voltage into three sine-wave PWM signals for the motor driver board, so the wheel gets smooth torque in both directions.</p>
       </li>
     </ol>
   </div>
@@ -92,7 +92,7 @@
     <header class="sec-head">
       <p class="sec-num"><b>02</b> Hardware</p>
       <h2>Bill of materials</h2>
-      <p class="lede">Off-the-shelf modules wired on a breadboard. An adjustable bench PSU powers the motor while a USB-C port on the breadboard powers everything else.</p>
+      <p class="lede">I wired off-the-shelf modules together on a breadboard. An adjustable bench PSU powers the motor while a USB-C port on the breadboard powers everything else.</p>
     </header>
     <div class="split">
       <figure class="fig">
@@ -100,21 +100,21 @@
           <img src="media/rig.jpeg" alt="The 3D-printed frame with its reaction wheel, sensors and breadboard electronics" loading="lazy" onerror="this.remove()">
           <div class="ph"><span class="ph-kind">Photo · square</span><code>media/rig.jpeg</code><span class="ph-note">Three-quarter view with small labels: wheel, encoder, IMU, MCU, driver, display, HC-05.</span></div>
         </div>
-        <figcaption>The complete assembly. The display's top row refreshes so often that the camera caught it mid-update, which is why it looks cut off.</figcaption>
+        <figcaption>The complete assembly. The top row of the OLED refreshes rapidly, so it looks cut off in the photo.</figcaption>
       </figure>
       <div class="table-wrap">
         <table class="bom">
           <thead><tr><th>Part</th><th>Role</th><th>Interface</th></tr></thead>
           <tbody>
-            <tr><td><b>STM32F411CE</b><br> <small>"Black Pill"</small></td><td>Cortex-M4F at 100 MHz; runs everything</td><td>SWD</td></tr>
-            <tr><td><b>SimpleFOC Mini v1.1</b></td><td>DRV8313 three-phase power stage (the board only, none of the SimpleFOC software)</td><td>3× PWM, enable, fault, reset</td></tr>
-            <tr><td><b>GBM2804H-100T</b></td><td>Brushless gimbal motor, 7 pole pairs, spins the wheel</td><td>3 phases, 12 V</td></tr>
+            <tr><td><b>STM32F411CE</b><br> <small>"Black Pill"</small></td><td>Cortex-M4F at 100 MHz, runs all the firmware</td><td>SWD</td></tr>
+            <tr><td><b>SimpleFOC Mini v1.1</b></td><td>DRV8313 three-phase driver board (only the hardware, I didn't use any SimpleFOC software)</td><td>3× PWM, enable, fault, reset</td></tr>
+            <tr><td><b>GBM2804H-100T</b></td><td>Brushless gimbal motor with 7 pole pairs that spins the wheel</td><td>3 phases, 12 V</td></tr>
             <tr><td><b>Reaction wheel</b></td><td>120 mm diameter, 22.1 g</td><td>on the motor</td></tr>
             <tr><td><b>AS5047P</b></td><td>14-bit magnetic encoder on the wheel axis</td><td>SPI, 6.25 MHz</td></tr>
-            <tr><td><b>MPU6500</b></td><td>Accelerometer and gyro for frame tilt and rotation rate</td><td>I²C, 400 kHz</td></tr>
-            <tr><td><b>SH1106 OLED</b></td><td>128×64 display: tilt, countdown, wheel speed</td><td>I²C, own bus</td></tr>
-            <tr><td><b>HC-05</b></td><td>Bluetooth serial for live telemetry and tuning</td><td>UART, 115200 baud</td></tr>
-            <tr><td><b>Frame</b></td><td>Fully 3D-printed; centre of mass 75 mm above the pivot</td><td class="na">–</td></tr>
+            <tr><td><b>MPU6500</b></td><td>Accelerometer and gyro that measure the frame's tilt and rotation rate</td><td>I²C, 400 kHz</td></tr>
+            <tr><td><b>SH1106 OLED</b></td><td>128×64 display that shows the tilt, start countdown and wheel speed</td><td>I²C, own bus</td></tr>
+            <tr><td><b>HC-05</b></td><td>Bluetooth serial link for live telemetry and tuning</td><td>UART, 115200 baud</td></tr>
+            <tr><td><b>Frame</b></td><td>Fully 3D-printed, with the centre of mass 75 mm above the pivot</td><td class="na">–</td></tr>
             <tr><td><b>Bench kit</b></td><td>Adjustable bench PSU (12 V for the motor), breadboard, ST-LINK V2 programmer, and a USB-C port that powers everything except the motor</td><td class="na">–</td></tr>
           </tbody>
         </table>
@@ -214,19 +214,19 @@
         </svg>
       </div>
       <p class="scroll-hint">Scroll sideways to see the whole diagram →</p>
-      <figcaption>System block diagram. The adjustable PSU powers only the motor side; the USB-C port on the breadboard powers the STM32 and every module.</figcaption>
+      <figcaption>System block diagram. The adjustable PSU only powers the motor side, and the USB-C port on the breadboard powers the STM32 and all the modules.</figcaption>
     </figure>
 
     <div class="split lr gap-top">
       <div>
         <h3>Timing budget</h3>
         <ul class="clocks">
-          <li><span class="hz">20 kHz</span><div><b>TIM2 · PWM carrier</b><small>Timer hardware only, no CPU time</small></div></li>
-          <li><span class="hz">10 kHz</span><div><b>TIM5 · encoder + commutation</b><span class="bar"><i style="--w:56%"></i></span><small>worst observed: under 60 µs of 100 µs</small></div></li>
-          <li><span class="hz">1 kHz</span><div><b>TIM3 · IMU, tilt filter, LQR, recorder</b><span class="bar"><i style="--w:56%"></i></span><small>worst observed: under 560 µs of 1 ms</small></div></li>
-          <li><span class="hz">main</span><div><b>Main loop · display, telemetry, commands</b><small>runs in whatever time is left</small></div></li>
+          <li><span class="hz">20 kHz</span><div><b>TIM2 · PWM carrier</b><small>Handled by the timer hardware, so it uses no CPU time</small></div></li>
+          <li><span class="hz">10 kHz</span><div><b>TIM5 · encoder + commutation</b><span class="bar"><i style="--w:56%"></i></span><small>longest I recorded: under 60 µs out of 100 µs</small></div></li>
+          <li><span class="hz">1 kHz</span><div><b>TIM3 · IMU, tilt filter, LQR, recorder</b><span class="bar"><i style="--w:56%"></i></span><small>longest I recorded: under 560 µs out of 1 ms</small></div></li>
+          <li><span class="hz">main</span><div><b>Main loop · display, telemetry, commands</b><small>runs in the time left over</small></div></li>
         </ul>
-        <p class="small-note">Interrupt priorities, highest first: a 1 kHz SysTick safety guard, the motor interrupt, UART receive, then the control loop.</p>
+        <p class="small-note">I set the interrupt priorities from highest to lowest as the 1 kHz SysTick safety guard, the motor interrupt, UART receive and then the control loop.</p>
       </div>
       <figure class="snippet">
         <div class="code">
@@ -244,7 +244,7 @@
         Motor_Kill(MOTOR_LATE);
 }</code></pre>
         </div>
-        <figcaption>Every interrupt times itself with the CPU's cycle counter and switches the motor off if it ever runs late.</figcaption>
+        <figcaption>Each interrupt measures its own run time with the CPU's cycle counter and shuts the motor off if it runs late.</figcaption>
       </figure>
     </div>
   </div>
@@ -256,7 +256,7 @@
     <header class="sec-head">
       <p class="sec-num"><b>04</b> Wiring</p>
       <h2>Breadboard layout and pin map</h2>
-      <p class="lede">This is a breadboard bench prototype. The PSU's 12 V and the three motor phases go straight to the driver board; everything else runs from the USB-C port, with 3.3 V logic and one shared ground.</p>
+      <p class="lede">This is a breadboard bench prototype. The 12 V from the PSU and the three motor phases connect straight to the driver board, and everything else runs off the USB-C port with 3.3 V logic and one shared ground.</p>
     </header>
     <div class="split">
       <figure class="fig">
@@ -264,14 +264,14 @@
           <img src="media/breadboard.jpeg" alt="The breadboard with the STM32 Black Pill and the other modules" loading="lazy" onerror="this.remove()">
           <div class="ph"><span class="ph-kind">Photo · square</span><code>media/breadboard.jpeg</code><span class="ph-note">Top-down shot of the breadboard, wires visible.</span></div>
         </div>
-        <figcaption>The breadboard: every module except the motor runs from its USB-C port.</figcaption>
+        <figcaption>The breadboard, where every module except the motor runs off the USB-C port.</figcaption>
       </figure>
       <div class="choices">
         <h3>Design choices</h3>
-        <div class="choice"><b>Two I²C buses</b><p>The IMU and the display each get their own bus. Redrawing one line of text takes about 6 ms of bus time, which would block the 1 kHz IMU read on a shared bus.</p></div>
-        <div class="choice"><b>EN is the kill switch</b><p>Pulling EN low turns every driver output off and lets the wheel coast. The DRV8313 pulls EN low internally and the firmware drives it low first thing at startup, so nothing moves before the firmware says so.</p></div>
-        <div class="choice"><b>Fault lines wired, not ignored</b><p>The DRV8313 latches off on over-current until its reset pin is pulsed or its power is cycled. The firmware watches the fault pin and can clear it without cutting power.</p></div>
-        <div class="choice"><b>One timer for all three phases</b><p>IN1–IN3 come from TIM2 channels 1–3, so the three phases share one counter and one update event.</p></div>
+        <div class="choice"><b>Two I²C buses</b><p>I put the IMU and the display on separate buses, because redrawing one line of text on the display takes about 6 ms of bus time and would block the 1 kHz IMU reads if they shared one.</p></div>
+        <div class="choice"><b>EN as the kill switch</b><p>Pulling EN low turns off every driver output and lets the wheel coast. The DRV8313 already pulls EN low internally, and the firmware drives it low as the first thing at startup, so the motor can't move until the firmware enables it.</p></div>
+        <div class="choice"><b>Wiring the fault lines</b><p>On over-current the DRV8313 latches off until its reset pin is pulsed or the power is cycled, so I wired both lines to the STM32. The firmware watches the fault pin and can clear the fault without cutting power.</p></div>
+        <div class="choice"><b>One timer for all three phases</b><p>IN1–IN3 run off TIM2 channels 1–3, so all three phases share one counter and one update event.</p></div>
       </div>
     </div>
 
@@ -298,17 +298,17 @@
   <div class="wrap">
     <header class="sec-head">
       <p class="sec-num"><b>05</b> Motor control</p>
-      <h2>Field-oriented control, written from scratch</h2>
-      <p class="lede">A brushless motor makes the most torque when its magnetic field leads the rotor by 90 electrical degrees. There's no motor library here: every 100 µs the firmware reads the rotor angle, works out where the field should point and writes three PWM duties straight to the timer registers.</p>
+      <h2>Writing the FOC motor driver from scratch</h2>
+      <p class="lede">A brushless motor makes the most torque when its magnetic field leads the rotor by 90 electrical degrees. I wrote the driver without a motor library, and every 100 µs the firmware reads the rotor angle, calculates where the field should point and writes the three PWM duties directly to the timer registers.</p>
     </header>
 
     <div class="split lr">
       <div class="prose">
-        <p>The encoder angle times the 7 pole pairs gives the electrical angle, minus an offset measured once by an alignment sweep. An inverse Park transform rotates the requested voltage onto that angle. An inverse Clarke transform then splits it into three phase voltages 120° apart, which become centred sine-wave duties on a 20 kHz carrier.</p>
+        <p>To get the electrical angle, the firmware multiplies the encoder angle by the 7 pole pairs and subtracts an offset that was measured once with an alignment sweep. An inverse Park transform rotates the requested voltage onto that angle, and an inverse Clarke transform splits it into three phase voltages 120° apart. Those become centred sine-wave duties on a 20 kHz carrier.</p>
         <div class="choices">
-          <div class="choice"><b>Voltage mode</b><p>The driver board has no current sensors, so the firmware commands voltage, capped at 6 V (the full sine range on a 12 V supply). Back-EMF limits the wheel to about 1,400 RPM at 6 V.</p></div>
-          <div class="choice"><b>Align once, store it</b><p>An automatic 9-second routine, run once at setup, locks the stator field at electrical zero and sweeps it one electrical revolution forward and back. The rotor follows, turning the wheel about 51° and back, and its settled encoder reading gives the motor's direction and electrical offset, which is saved in the firmware. The encoder is absolute and its magnet is fixed to the rotor, so the offset holds through power cycles and startup never has to move the wheel. Moving the magnet or swapping phase wires means running setup again.</p></div>
-          <div class="choice"><b>Glitch-free duty updates</b><p>Timer updates are held off while the three duties are written, so all three change on the same PWM cycle.</p></div>
+          <div class="choice"><b>Voltage mode</b><p>The driver board doesn't have current sensors, so the firmware controls voltage instead, capped at 6 V, which is the full sine range on a 12 V supply. At 6 V, back-EMF limits the wheel to about 1,400 RPM.</p></div>
+          <div class="choice"><b>Align once, store it</b><p>An automatic 9-second routine that runs once at setup locks the stator field at electrical zero and sweeps it one electrical revolution forward and back. The rotor follows it, turning the wheel about 51° and back, and the settled encoder reading gives the motor's direction and electrical offset, which I saved in the firmware. Since the encoder is absolute and its magnet is fixed to the rotor, the offset stays the same through power cycles, so startup never has to move the wheel. If the magnet is moved or the phase wires are swapped, setup has to be run again.</p></div>
+          <div class="choice"><b>Updating all three duties together</b><p>The firmware holds off timer updates while it writes the three duties, so all three change on the same PWM cycle.</p></div>
         </div>
       </div>
       <div class="stack">
@@ -344,11 +344,11 @@ TIM2-&gt;CR1 &amp;= ~TIM_CR1_UDIS;   // all three latch together</code></pre>
     </div>
 
     <div class="stats gap-top">
-      <div class="stat"><b>1,070 rad/s²</b><span>Wheel acceleration from rest with a 6 V step, both directions.</span></div>
-      <div class="stat"><b>140 ms</b><span>Speed time constant under a constant 6 V.</span></div>
-      <div class="stat"><b>~1,400 RPM</b><span>Top wheel speed at 6 V. Acceleration per volt matched at 2 V and 6 V, so torque scales linearly to the limit.</span></div>
+      <div class="stat"><b>1,070 rad/s²</b><span>Wheel acceleration from standstill with a 6 V step, in both directions.</span></div>
+      <div class="stat"><b>140 ms</b><span>Speed time constant with a constant 6 V applied.</span></div>
+      <div class="stat"><b>~1,400 RPM</b><span>Top wheel speed at 6 V. The acceleration per volt was the same at 2 V and 6 V, so torque scales linearly all the way to the limit.</span></div>
     </div>
-    <p class="small-note">From 1 kHz on-board recordings of ±6 V steps from rest, with the frame in a bench mount and the speed read from the encoder.</p>
+    <p class="small-note">Measured from 1 kHz on-board recordings of ±6 V steps from rest, with the frame held in a bench mount and the speed read from the encoder.</p>
   </div>
 </section>
 
